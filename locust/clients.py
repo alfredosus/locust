@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json as js
+import numbers
 import re
 import time
 from contextlib import contextmanager
@@ -219,6 +221,27 @@ class HttpSession(requests.Session):
             request_meta["response_length"] = int(response.headers.get("content-length") or 0)
         else:
             request_meta["response_length"] = len(response.content or b"")
+        print(response.content)
+        streamed_text = ""
+        for chunk in response.iter_lines():  # Read 1KB chunks
+            if chunk:
+                chunk_text = chunk.decode("utf-8")
+                streamed_text += chunk_text
+
+                # print(chunk_text, end="", flush=True)
+                # print("fdddddddd")
+        # print(chunk)
+        json_resp = js.loads(chunk)
+
+        # print(json_resp)
+        # if not hasattr(self, "numeric_keys"):
+        self.numeric_keys = [key for key, value in json_resp.items() if isinstance(value, numbers.Number)]
+        # print(self.numeric_keys)
+        extra_metrics = {key: value for key, value in json_resp.items() if key in self.numeric_keys}
+        print(extra_metrics)
+        # if kwargs.get("extra_metrics", {}):
+        request_meta["extra_metrics"] = extra_metrics
+        # print(request_meta["extra_metrics"])
 
         if catch_response:
             return ResponseContextManager(response, request_event=self.request_event, request_meta=request_meta)

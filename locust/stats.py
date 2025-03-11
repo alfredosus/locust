@@ -8,14 +8,13 @@ import os
 import signal
 import time
 from abc import abstractmethod
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import Counter, OrderedDict, defaultdict, namedtuple
 from collections.abc import Iterable
 from copy import copy
 from html import escape
 from itertools import chain
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Callable, NoReturn, Protocol, TypedDict, TypeVar, cast
-from collections import Counter
 
 import gevent
 
@@ -359,13 +358,20 @@ class StatsEntry:
 
         # increase total content-length
         self.total_content_length += content_length
-        self.numeric_indicators.update(
-            {
-                key: self.numeric_indicators[key] + value
-                for key, value in kwargs.items()
-                if isinstance(value, int) and key.startswith("extra_")
-            }
-        )
+        # self.numeric_indicators.update(
+        #     {
+        #         key: self.numeric_indicators[key] + value
+        #         for key, value in kwargs.items()
+        #         if isinstance(value, int) and key.startswith("extra_")
+        #     }
+        # )
+        if kwargs.get("extra_metrics", {}):
+            self.numeric_indicators.update(
+                {
+                    key: self.numeric_indicators[key] + int(value)
+                    for key, value in kwargs.get("extra_metrics", {}).items()
+                }
+            )
 
     def _log_time_of_request(self, current_time: float) -> None:
         t = int(current_time)
